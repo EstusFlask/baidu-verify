@@ -200,6 +200,11 @@
     }
   });
 
+  window.addEventListener("pageshow", () => {
+    lastRunKey = "";
+    schedule(true);
+  });
+
   const observer = new MutationObserver(() => schedule(false));
   observer.observe(document.documentElement, { childList: true, subtree: true });
   schedule(true);

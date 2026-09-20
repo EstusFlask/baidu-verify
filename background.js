@@ -5,7 +5,10 @@ const DEFAULTS = {
 };
 
 const CACHE_KEY = "verificationCacheV3";
+const LEGACY_CACHE_KEYS = ["verificationCacheV2"];
+const LAST_GOOD_CACHE_KEY = "verificationLastGoodV1";
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+const LAST_GOOD_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_CACHE_ENTRIES = 80;
 
 chrome.runtime.onInstalled.addListener(async () => {
@@ -22,7 +25,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message?.type === "CLEAR_CACHE") {
-    chrome.storage.local.remove(CACHE_KEY).then(() => sendResponse({ ok: true }));
+    chrome.storage.local.remove([CACHE_KEY, LAST_GOOD_CACHE_KEY, ...LEGACY_CACHE_KEYS])
+      .then(() => sendResponse({ ok: true }));
     return true;
   }
 
@@ -49,6 +53,21 @@ async function verifyDomains(message) {
   }
 
   const verification = await verifyWithBaidu(query, items);
+
+  if (verificationHasUnavailable(verification)) {
+    const stale = await readLastGood(cacheId);
+    if (stale) {
+      const refreshReason = Object.values(verification.results)
+        .find((item) => item?.status === "unavailable")?.reason || "刷新失败";
+      return {
+        ok: true,
+        cached: true,
+        stale: true,
+        results: selectStaleResults(stale.results, items, refreshReason),
+        officialResults: sanitizeOfficialResults(stale.officialResults)
+      };
+    }
+  }
 
   await writeCache(cacheId, verification);
   return {
@@ -174,8 +193,67 @@ function selectResults(results, items) {
 }
 
 async function readCache(cacheId) {
-  const data = await chrome.storage.local.get(CACHE_KEY);
-  const entry = data[CACHE_KEY]?.[cacheId];
+  const data = await chrome.storage.local.get([CACHE_KEY, ...LEGACY_CACHE_KEYS]);
+  for (const key of [CACHE_KEY, ...LEGACY_CACHE_KEYS]) {
+    const entry = data[key]?.[cacheId];
+    if (!isUsableCacheEntry(entry)) continue;
+    return entry;
+  }
+  return null;
+}
+
+async function writeCache(cacheId, verification) {
+  if (verificationHasUnavailable(verification)) return;
+
+  const data = await chrome.storage.local.get([CACHE_KEY, LAST_GOOD_CACHE_KEY]);
+  const cache = data[CACHE_KEY] || {};
+  const entry = {
+    createdAt: Date.now(),
+    ttlMs: CACHE_TTL_MS,
+    results: verification.results,
+    officialResults: sanitizeOfficialResults(verification.officialResults)
+  };
+  cache[cacheId] = entry;
+
+  const lastGood = data[LAST_GOOD_CACHE_KEY] || {};
+  lastGood[cacheId] = { ...entry, ttlMs: LAST_GOOD_TTL_MS };
+
+  await chrome.storage.local.set({
+    [CACHE_KEY]: trimCache(cache),
+    [LAST_GOOD_CACHE_KEY]: trimCache(lastGood)
+  });
+}
+
+async function readLastGood(cacheId) {
+  const data = await chrome.storage.local.get(LAST_GOOD_CACHE_KEY);
+  const entry = data[LAST_GOOD_CACHE_KEY]?.[cacheId];
+  return isUsableCacheEntry(entry) ? entry : null;
+}
+
+function verificationHasUnavailable(verification) {
+  return Object.values(verification?.results || {}).some((item) => item?.status === "unavailable");
+}
+
+function selectStaleResults(results, items, refreshReason) {
+  const selected = selectResults(results, items);
+  return Object.fromEntries(Object.entries(selected).map(([domain, item]) => [
+    domain,
+    {
+      ...item,
+      reason: `${item.reason || "上次核验成功"}（使用上次成功结果；本次刷新失败：${refreshReason}）`
+    }
+  ]));
+}
+
+function trimCache(cache) {
+  return Object.fromEntries(
+    Object.entries(cache)
+      .sort((a, b) => b[1].createdAt - a[1].createdAt)
+      .slice(0, MAX_CACHE_ENTRIES)
+  );
+}
+
+function isUsableCacheEntry(entry) {
   if (
     !entry
     || !Number.isFinite(entry.createdAt)
@@ -183,27 +261,9 @@ async function readCache(cacheId) {
     || typeof entry.results !== "object"
     || Array.isArray(entry.results)
     || Date.now() - entry.createdAt > (entry.ttlMs || CACHE_TTL_MS)
-  ) return null;
-  return entry;
-}
+  ) return false;
 
-async function writeCache(cacheId, verification) {
-  const data = await chrome.storage.local.get(CACHE_KEY);
-  const cache = data[CACHE_KEY] || {};
-  const hasUnavailable = Object.values(verification.results).some((item) => item?.status === "unavailable");
-  cache[cacheId] = {
-    createdAt: Date.now(),
-    ttlMs: hasUnavailable ? 5 * 60 * 1000 : CACHE_TTL_MS,
-    results: verification.results,
-    officialResults: sanitizeOfficialResults(verification.officialResults)
-  };
-
-  const trimmed = Object.fromEntries(
-    Object.entries(cache)
-      .sort((a, b) => b[1].createdAt - a[1].createdAt)
-      .slice(0, MAX_CACHE_ENTRIES)
-  );
-  await chrome.storage.local.set({ [CACHE_KEY]: trimmed });
+  return !Object.values(entry.results).some((item) => item?.status === "unavailable");
 }
 
 function cleanText(value, maxLength) {

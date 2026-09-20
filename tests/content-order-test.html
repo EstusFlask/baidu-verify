@@ -1,6 +1,10 @@
 <!doctype html>
 <html lang="zh-CN">
-  <head><meta charset="utf-8"><title>Content order test</title></head>
+  <head>
+    <meta charset="utf-8">
+    <title>Content order test</title>
+    <link rel="stylesheet" href="../content.css">
+  </head>
   <body>
     <div id="search">
       <div id="rso">
@@ -18,12 +22,14 @@
     </div>
     <script>
       const scenario = new URL(location.href).searchParams.get("scenario");
+      window.verifyCallCount = 0;
       if (scenario === "missing") document.querySelector("#official-result").remove();
       window.chrome = {
         runtime: {
           onMessage: { addListener() {} },
           async sendMessage(message) {
             if (message.type !== "VERIFY_DOMAINS") return { ok: true };
+            window.verifyCallCount += 1;
             const results = Object.fromEntries(message.items.map((item) => [item.domain, {
               status: item.domain === "official.example" ? "official" : "not_found",
               reason: "test"
