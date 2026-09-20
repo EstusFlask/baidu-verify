@@ -1,12 +1,10 @@
 importScripts("lib/baidu-parser.js");
 
 const DEFAULTS = {
-  enabled: true,
-  mode: "baidu-html",
-  apiEndpoint: ""
+  enabled: true
 };
 
-const CACHE_KEY = "verificationCacheV1";
+const CACHE_KEY = "verificationCacheV2";
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const MAX_CACHE_ENTRIES = 80;
 
@@ -32,30 +30,33 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 });
 
 async function verifyDomains(message) {
-  const [synced, local] = await Promise.all([
-    chrome.storage.sync.get(DEFAULTS),
-    chrome.storage.local.get({ apiToken: "" })
-  ]);
-  const settings = { ...synced, apiToken: local.apiToken };
+  const settings = await chrome.storage.sync.get(DEFAULTS);
   const query = cleanText(message.query, 300);
   const items = sanitizeItems(message.items);
 
   if (!settings.enabled) return { ok: true, results: makeUniform(items, "disabled", "扩展已暂停") };
   if (!query || !items.length) return { ok: true, results: {} };
 
-  const cacheId = `${settings.mode}|${settings.apiEndpoint || ""}|${query.toLowerCase()}`;
+  const cacheId = query.toLowerCase();
   const cached = await readCache(cacheId);
-  if (cached) return { ok: true, cached: true, results: selectResults(cached, items) };
-
-  let results;
-  if (settings.mode === "custom-api") {
-    results = await verifyWithCustomApi(query, items, settings);
-  } else {
-    results = await verifyWithBaidu(query, items);
+  if (cached) {
+    return {
+      ok: true,
+      cached: true,
+      results: selectResults(cached.results, items),
+      officialResults: sanitizeOfficialResults(cached.officialResults)
+    };
   }
 
-  await writeCache(cacheId, results);
-  return { ok: true, cached: false, results: selectResults(results, items) };
+  const verification = await verifyWithBaidu(query, items);
+
+  await writeCache(cacheId, verification);
+  return {
+    ok: true,
+    cached: false,
+    results: selectResults(verification.results, items),
+    officialResults: sanitizeOfficialResults(verification.officialResults)
+  };
 }
 
 async function verifyWithBaidu(query, items) {
@@ -73,16 +74,16 @@ async function verifyWithBaidu(query, items) {
       headers: { "Accept-Language": "zh-CN,zh;q=0.9" }
     });
   } catch (error) {
-    return makeUniform(items, "unavailable", `无法访问百度：${safeError(error)}`, url.href);
+    return verificationUniform(items, "unavailable", `无法访问百度：${safeError(error)}`, url.href);
   }
 
   if (!response.ok) {
-    return makeUniform(items, "unavailable", `百度返回 HTTP ${response.status}`, url.href);
+    return verificationUniform(items, "unavailable", `百度返回 HTTP ${response.status}`, url.href);
   }
 
   const html = await response.text();
   const parsed = BaiduParser.parse(html);
-  if (!parsed.ok) return makeUniform(items, "unavailable", parsed.reason, url.href);
+  if (!parsed.ok) return verificationUniform(items, "unavailable", parsed.reason, url.href);
 
   const official = new Set(parsed.officialDomains.map(normalizeDomain));
   const matched = new Set(parsed.matchedDomains.map(normalizeDomain));
@@ -97,60 +98,7 @@ async function verifyWithBaidu(query, items) {
       results[item.domain] = result("not_found", "百度当前结果页中未找到该网站，不能据此判断它不是官网", url.href);
     }
   }
-  return results;
-}
-
-async function verifyWithCustomApi(query, items, settings) {
-  if (!settings.apiEndpoint) return makeUniform(items, "unavailable", "尚未配置 API 地址");
-
-  let endpoint;
-  try {
-    endpoint = new URL(settings.apiEndpoint);
-    if (!/^https?:$/.test(endpoint.protocol)) throw new Error("只支持 HTTP(S)");
-  } catch (error) {
-    return makeUniform(items, "unavailable", `API 地址无效：${safeError(error)}`);
-  }
-
-  const headers = { "Content-Type": "application/json", "Accept": "application/json" };
-  if (settings.apiToken) headers.Authorization = `Bearer ${settings.apiToken}`;
-
-  let response;
-  try {
-    response = await fetch(endpoint.href, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ query, results: items })
-    });
-  } catch (error) {
-    return makeUniform(items, "unavailable", `API 请求失败：${safeError(error)}`);
-  }
-
-  if (!response.ok) return makeUniform(items, "unavailable", `API 返回 HTTP ${response.status}`);
-
-  let payload;
-  try {
-    payload = await response.json();
-  } catch (_error) {
-    return makeUniform(items, "unavailable", "API 没有返回合法 JSON");
-  }
-
-  const source = payload?.results || payload;
-  const results = {};
-  for (const item of items) {
-    const raw = Array.isArray(source)
-      ? source.find((entry) => normalizeDomain(entry?.domain) === item.domain)
-      : source?.[item.domain];
-    results[item.domain] = normalizeApiResult(raw);
-  }
-  return results;
-}
-
-function normalizeApiResult(raw) {
-  if (!raw) return result("not_found", "API 未返回该域名的结果");
-  if (typeof raw === "boolean") return result(raw ? "official" : "not_official", "由自定义 API 返回");
-  const allowed = new Set(["official", "not_official", "not_found", "unavailable"]);
-  const status = allowed.has(raw.status) ? raw.status : "unavailable";
-  return result(status, cleanText(raw.reason, 300) || "由自定义 API 返回", cleanText(raw.sourceUrl, 2000));
+  return { results, officialResults: parsed.officialResults };
 }
 
 function sanitizeItems(items) {
@@ -191,6 +139,30 @@ function makeUniform(items, status, reason, sourceUrl = "") {
   return Object.fromEntries(items.map((item) => [item.domain, result(status, reason, sourceUrl)]));
 }
 
+function verificationUniform(items, status, reason, sourceUrl = "") {
+  return { results: makeUniform(items, status, reason, sourceUrl), officialResults: [] };
+}
+
+function sanitizeOfficialResults(items) {
+  if (!Array.isArray(items)) return [];
+  const seen = new Set();
+  const output = [];
+  for (const item of items.slice(0, 10)) {
+    const domain = normalizeDomain(item?.domain || item?.url);
+    let url;
+    try {
+      url = new URL(item?.url);
+      if (!/^https?:$/.test(url.protocol)) continue;
+    } catch (_error) {
+      continue;
+    }
+    if (!domain || seen.has(domain)) continue;
+    seen.add(domain);
+    output.push({ domain, url: url.href, title: cleanText(item?.title, 200) || domain });
+  }
+  return output;
+}
+
 function selectResults(results, items) {
   return Object.fromEntries(items.map((item) => [
     item.domain,
@@ -202,17 +174,18 @@ async function readCache(cacheId) {
   const data = await chrome.storage.local.get(CACHE_KEY);
   const entry = data[CACHE_KEY]?.[cacheId];
   if (!entry || Date.now() - entry.createdAt > (entry.ttlMs || CACHE_TTL_MS)) return null;
-  return entry.results;
+  return entry;
 }
 
-async function writeCache(cacheId, results) {
+async function writeCache(cacheId, verification) {
   const data = await chrome.storage.local.get(CACHE_KEY);
   const cache = data[CACHE_KEY] || {};
-  const hasUnavailable = Object.values(results).some((item) => item?.status === "unavailable");
+  const hasUnavailable = Object.values(verification.results).some((item) => item?.status === "unavailable");
   cache[cacheId] = {
     createdAt: Date.now(),
     ttlMs: hasUnavailable ? 5 * 60 * 1000 : CACHE_TTL_MS,
-    results
+    results: verification.results,
+    officialResults: sanitizeOfficialResults(verification.officialResults)
   };
 
   const trimmed = Object.fromEntries(

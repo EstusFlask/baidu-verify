@@ -27,6 +27,7 @@
     equal(parsed.ok, true);
     equal(parsed.officialDomains, ["baidu.com"]);
     equal(parsed.matchedDomains, ["baidu.com", "example.com"]);
+    equal(parsed.officialResults, [{ domain: "baidu.com", url: "https://www.baidu.com/", title: "百度" }]);
   });
 
   test("detects challenge", () => {

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head><meta charset="utf-8"><title>Content order test</title></head>
+  <body>
+    <div id="search">
+      <div id="rso">
+        <div class="MjjYud" id="normal-result">
+          <a href="https://normal.example/page"><h3>普通结果</h3>
+            <div class="q0vns"><div class="CA5RN"><div class="byrV5b"><cite>normal.example</cite></div></div></div>
+          </a>
+        </div>
+        <div class="MjjYud" id="official-result">
+          <a href="https://official.example/"><h3>官方网站</h3>
+            <div class="q0vns"><div class="CA5RN"><div class="byrV5b"><cite>official.example</cite></div></div></div>
+          </a>
+        </div>
+      </div>
+    </div>
+    <script>
+      const scenario = new URL(location.href).searchParams.get("scenario");
+      if (scenario === "missing") document.querySelector("#official-result").remove();
+      window.chrome = {
+        runtime: {
+          onMessage: { addListener() {} },
+          async sendMessage(message) {
+            if (message.type !== "VERIFY_DOMAINS") return { ok: true };
+            const results = Object.fromEntries(message.items.map((item) => [item.domain, {
+              status: item.domain === "official.example" ? "official" : "not_found",
+              reason: "test"
+            }]));
+            return {
+              ok: true,
+              results,
+              officialResults: [{ domain: "official.example", url: "https://official.example/", title: "官方网站" }]
+            };
+          }
+        }
+      };
+    </script>
+    <script src="../content.js"></script>
+  </body>
+</html>

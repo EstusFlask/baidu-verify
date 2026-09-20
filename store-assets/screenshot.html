@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <style>
+      * { box-sizing: border-box; }
+      body { background: #fff; color: #202124; font-family: Arial, "Microsoft YaHei", sans-serif; margin: 0; }
+      header { border-bottom: 1px solid #e6e8eb; height: 126px; padding: 26px 52px; }
+      .search { align-items: center; border: 1px solid #dfe1e5; border-radius: 28px; box-shadow: 0 2px 8px #3c40431a; display: flex; font-size: 17px; height: 52px; padding: 0 22px; width: 650px; }
+      .search span { color: #5f6368; margin-left: auto; }
+      main { display: grid; grid-template-columns: 680px 1fr; gap: 70px; padding: 42px 70px; }
+      .result { margin-bottom: 34px; width: 640px; }
+      .source { align-items: center; display: flex; font-size: 14px; }
+      .favicon { align-items: center; background: #edf3fe; border-radius: 50%; color: #1a73e8; display: flex; font-weight: 700; height: 30px; justify-content: center; margin-right: 11px; width: 30px; }
+      .site { line-height: 17px; }
+      .url { color: #4d5156; font-size: 12px; }
+      .dots { color: #5f6368; font-size: 20px; margin: 0 8px; }
+      .badge { background: #e8f0fe; border: 1px solid #8ab4f8; border-radius: 99px; color: #1967d2; font-size: 11px; font-weight: 700; padding: 2px 7px; }
+      h3 { color: #1a0dab; font-size: 22px; font-weight: 400; margin: 8px 0 5px; }
+      .snippet { color: #4d5156; font-size: 14px; line-height: 22px; }
+      .promoted { background: #f8fbff; border: 1px solid #d2e3fc; border-left: 4px solid #1a73e8; border-radius: 10px; padding: 15px 17px; }
+      .eyebrow { color: #1967d2; font-size: 12px; font-weight: 700; }
+      aside { padding-top: 52px; }
+      .brand { align-items: center; display: flex; gap: 14px; }
+      .brand img { height: 58px; width: 58px; }
+      h1 { color: #174ea6; font-size: 35px; line-height: 1.25; margin: 0; }
+      aside p { color: #5f6368; font-size: 18px; line-height: 1.7; margin: 25px 0; max-width: 390px; }
+      ul { color: #3c4043; font-size: 16px; line-height: 2.1; list-style: none; padding: 0; }
+      li::before { color: #20a464; content: "✓"; font-weight: 800; margin-right: 10px; }
+      footer { bottom: 22px; color: #80868b; font-size: 12px; position: absolute; right: 36px; }
+    </style>
+  </head>
+  <body>
+    <header><div class="search">示例品牌 <span>⌕</span></div></header>
+    <main>
+      <section>
+        <div class="result promoted">
+          <div class="eyebrow">百度官网核验 · 官方结果已置顶</div>
+          <h3>示例品牌官方网站</h3>
+          <div class="url">https://www.example.com</div>
+          <div class="snippet">百度在当前搜索词下为此网址展示了“官方”标识。</div>
+        </div>
+        <div class="result">
+          <div class="source"><span class="favicon">示</span><div class="site">示例品牌<div class="url">https://www.example.com</div></div><span class="dots">⋮</span><span class="badge">百度官方</span></div>
+          <h3>示例品牌官方网站</h3>
+          <div class="snippet">查看品牌介绍、产品信息和官方服务。核验标签位于网址右侧，不遮挡搜索结果菜单。</div>
+        </div>
+        <div class="result">
+          <div class="source"><span class="favicon">资</span><div class="site">行业资讯<div class="url">https://news.example.org</div></div><span class="dots">⋮</span><span class="badge" style="background:#f8f9fa;border-color:#dadce0;color:#5f6368">百度无结果</span></div>
+          <h3>示例品牌相关新闻与介绍</h3>
+          <div class="snippet">没有足够信息时只显示未知状态，不会误判网站不是官网。</div>
+        </div>
+      </section>
+      <aside>
+        <div class="brand"><img src="icon-source.svg"><h1>百度官网<br>核验助手</h1></div>
+        <p>在 Google 搜索结果中辅助识别百度展示“官方”标识的网站。</p>
+        <ul><li>官方结果自动置顶</li><li>未知状态明确提示</li><li>仅在搜索页运行</li><li>无广告、无跟踪</li></ul>
+      </aside>
+    </main>
+    <footer>效果示意 · 核验结果仅代表百度当前搜索页展示</footer>
+  </body>
+</html>

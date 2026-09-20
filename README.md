@@ -2,6 +2,8 @@
 
 一个 Manifest V3 Chrome 扩展。在 Google 搜索结果旁显示百度针对**当前搜索词 + 当前网址**给出的“官方”标识状态。
 
+百度标记为“官方”的 Google 结果会被移动到自然搜索结果顶部。如果 Google 当前页没有对应网址，但百度返回了可解析的官方网址，扩展会在顶部增加一张明确标注来源的官方入口卡片。
+
 ## 调研结论
 
 - 截至 2026-09-20，没有查到功能相同、仍可在 Chrome 应用商店获取的扩展。
@@ -32,45 +34,10 @@
 
 点击蓝色“百度官方”标签可以打开对应的百度查询页。鼠标停留在任一标签上可查看原因。
 
-## 自定义 API
-
-点击扩展图标，把“核验来源”改为“自定义 JSON API”。扩展会请求该地址：
-
-```http
-POST /verify
-Content-Type: application/json
-Authorization: Bearer <可选 token>
-
-{
-  "query": "百度公司",
-  "results": [
-    { "domain": "baidu.com", "url": "https://www.baidu.com/" }
-  ]
-}
-```
-
-支持按域名返回对象：
-
-```json
-{
-  "results": {
-    "baidu.com": {
-      "status": "official",
-      "reason": "百度在该关键词下展示官方标识",
-      "sourceUrl": "https://www.baidu.com/s?wd=..."
-    }
-  }
-}
-```
-
-`status` 可为 `official`、`not_official`、`not_found`、`unavailable`。也可以直接返回布尔值，但对象格式能表达“不确定”和错误状态，更安全。
-
 ## 隐私与安全
 
-- 默认模式会把 Google 当前搜索词发送给百度，除此之外不发送数据。
-- 自定义 API 模式会向你配置的地址发送搜索词和当前结果的域名/URL。
+- 扩展会把 Google 当前搜索词发送给百度，除此之外不向开发者或其他服务发送数据。
 - 缓存仅保存在 Chrome 本地，6 小时过期；弹窗中可随时清除。
-- Bearer Token 只保存在本机 Chrome 存储中，不参与 Chrome 同步。仍不要把百度 Secret Key 或其他长期主密钥放进扩展；应放在你控制的服务端。
 
 ## 已知限制
 

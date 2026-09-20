@@ -61,3 +61,50 @@
     color: #aecbfa;
   }
 }
+
+.baidu-official-promoted-card {
+  background: #f8fbff;
+  border: 1px solid #d2e3fc;
+  border-left: 4px solid #1a73e8;
+  border-radius: 10px;
+  box-sizing: border-box;
+  margin: 0 0 22px;
+  padding: 14px 16px;
+  width: min(652px, 100%);
+}
+
+.baidu-official-promoted-eyebrow {
+  color: #1967d2;
+  font: 600 12px/18px Arial, "Microsoft YaHei", sans-serif;
+  margin-bottom: 4px;
+}
+
+.baidu-official-promoted-link {
+  color: #1a0dab !important;
+  display: block;
+  font: 400 20px/26px Arial, "Microsoft YaHei", sans-serif;
+  text-decoration: none;
+}
+
+.baidu-official-promoted-link:hover { text-decoration: underline; }
+
+.baidu-official-promoted-url,
+.baidu-official-promoted-detail {
+  font: 400 12px/18px Arial, "Microsoft YaHei", sans-serif;
+  overflow-wrap: anywhere;
+}
+
+.baidu-official-promoted-url { color: #188038; }
+.baidu-official-promoted-detail { color: #5f6368; margin-top: 5px; }
+
+@media (prefers-color-scheme: dark) {
+  .baidu-official-promoted-card {
+    background: #202b3c;
+    border-color: #3c597f;
+    border-left-color: #8ab4f8;
+  }
+  .baidu-official-promoted-eyebrow { color: #8ab4f8; }
+  .baidu-official-promoted-link { color: #8ab4f8 !important; }
+  .baidu-official-promoted-url { color: #81c995; }
+  .baidu-official-promoted-detail { color: #bdc1c6; }
+}
