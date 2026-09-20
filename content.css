@@ -1,0 +1,63 @@
+.baidu-official-check-badge {
+  appearance: none;
+  border: 1px solid #dadce0;
+  border-radius: 999px;
+  background: #fff;
+  color: #5f6368;
+  cursor: help;
+  display: inline-flex;
+  direction: ltr !important;
+  flex: 0 0 auto;
+  align-items: center;
+  font: 500 11px/16px Arial, "Microsoft YaHei", sans-serif;
+  height: 16px;
+  /* Google overlays a 34px result-menu button immediately after the URL. */
+  margin: 0 0 0 49px;
+  padding: 0 6px;
+  rotate: none !important;
+  text-decoration: none !important;
+  text-orientation: mixed !important;
+  transform: none !important;
+  unicode-bidi: isolate !important;
+  vertical-align: middle;
+  white-space: nowrap;
+  writing-mode: horizontal-tb !important;
+}
+
+.baidu-official-check-badge[data-status="official"] {
+  background: #e8f0fe;
+  border-color: #8ab4f8;
+  color: #1967d2;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.baidu-official-check-badge[data-status="not_official"],
+.baidu-official-check-badge[data-status="not_found"] {
+  background: #f8f9fa;
+  color: #5f6368;
+}
+
+.baidu-official-check-badge[data-status="unavailable"] {
+  background: #fef7e0;
+  border-color: #f9ab00;
+  color: #8a4b00;
+}
+
+.baidu-official-check-badge[data-status="loading"] {
+  opacity: 0.75;
+}
+
+@media (prefers-color-scheme: dark) {
+  .baidu-official-check-badge {
+    background: #202124;
+    border-color: #5f6368;
+    color: #bdc1c6;
+  }
+
+  .baidu-official-check-badge[data-status="official"] {
+    background: #1f3b64;
+    border-color: #8ab4f8;
+    color: #aecbfa;
+  }
+}

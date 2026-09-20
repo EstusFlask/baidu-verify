@@ -1,0 +1,44 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Parser tests</title>
+<pre id="result">running</pre>
+<script src="../lib/baidu-parser.js"></script>
+<script>
+  const cases = [];
+  function test(name, fn) {
+    try { fn(); cases.push({ name, ok: true }); }
+    catch (error) { cases.push({ name, ok: false, error: error.message }); }
+  }
+  function equal(actual, expected) {
+    if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+      throw new Error(`expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    }
+  }
+
+  test("detects official domain", () => {
+    const parsed = BaiduParser.parse(`
+      <html><title>百度一下</title>
+      <div id="1" class="result c-container" mu="https://www.baidu.com/">
+        <h3><a href="https://www.baidu.com/">百度</a></h3><span class="c-text-public">官方</span>
+      </div>
+      <div id="2" class="result c-container" mu="https://example.com/">
+        <h3><a href="https://example.com/">Example</a></h3>
+      </div></html>`);
+    equal(parsed.ok, true);
+    equal(parsed.officialDomains, ["baidu.com"]);
+    equal(parsed.matchedDomains, ["baidu.com", "example.com"]);
+  });
+
+  test("detects challenge", () => {
+    const parsed = BaiduParser.parse("<title>百度安全验证</title>");
+    equal(parsed.ok, false);
+  });
+
+  test("normalizes domains", () => {
+    equal(BaiduParser.normalizeDomain("https://www.Example.com/a"), "example.com");
+  });
+
+  const failed = cases.filter((item) => !item.ok);
+  document.querySelector("#result").textContent = JSON.stringify({ ok: !failed.length, cases }, null, 2);
+  document.title = failed.length ? "FAIL" : "PASS";
+</script>

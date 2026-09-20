@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Syntax tests</title>
+<pre id="result">running</pre>
+<script>
+  (async () => {
+    const files = ["../background.js", "../content.js", "../popup.js", "../lib/baidu-parser.js"];
+    const cases = [];
+    for (const file of files) {
+      try {
+        const source = await fetch(file).then((response) => response.text());
+        new Function(source);
+        cases.push({ file, ok: true });
+      } catch (error) {
+        cases.push({ file, ok: false, error: error.message });
+      }
+    }
+    const ok = cases.every((item) => item.ok);
+    document.querySelector("#result").textContent = JSON.stringify({ ok, cases }, null, 2);
+    document.title = ok ? "PASS" : "FAIL";
+  })();
+</script>

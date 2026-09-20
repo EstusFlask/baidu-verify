@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>百度官网核验助手</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>百度官网核验助手</h1>
+          <p>Google 搜索结果辅助核验</p>
+        </div>
+        <label class="switch" title="启用或暂停">
+          <input id="enabled" type="checkbox">
+          <span></span>
+        </label>
+      </header>
+
+      <form id="settings-form">
+        <label for="mode">核验来源</label>
+        <select id="mode">
+          <option value="baidu-html">百度搜索页（实验性）</option>
+          <option value="custom-api">自定义 JSON API</option>
+        </select>
+
+        <section id="api-settings" hidden>
+          <label for="api-endpoint">API 地址</label>
+          <input id="api-endpoint" type="url" inputmode="url" placeholder="https://example.com/verify">
+
+          <label for="api-token">Bearer Token（可选）</label>
+          <input id="api-token" type="password" autocomplete="off" placeholder="仅保存在本机 Chrome 中">
+        </section>
+
+        <p id="mode-help" class="help"></p>
+        <p id="status" role="status" aria-live="polite"></p>
+
+        <div class="actions">
+          <button id="clear-cache" type="button" class="secondary">清除缓存</button>
+          <button type="submit" class="primary">保存并刷新</button>
+        </div>
+      </form>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>
