@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "百度官网核验助手",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "在 Google 搜索结果旁显示百度官网标识的核验结果。",
   "minimum_chrome_version": "102",
   "permissions": [

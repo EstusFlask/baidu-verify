@@ -4,7 +4,7 @@ const DEFAULTS = {
   enabled: true
 };
 
-const CACHE_KEY = "verificationCacheV2";
+const CACHE_KEY = "verificationCacheV3";
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const MAX_CACHE_ENTRIES = 80;
 
@@ -164,16 +164,26 @@ function sanitizeOfficialResults(items) {
 }
 
 function selectResults(results, items) {
+  const safeResults = results && typeof results === "object" && !Array.isArray(results)
+    ? results
+    : {};
   return Object.fromEntries(items.map((item) => [
     item.domain,
-    results[item.domain] || result("not_found", "没有该域名的核验结果")
+    safeResults[item.domain] || result("not_found", "没有该域名的核验结果")
   ]));
 }
 
 async function readCache(cacheId) {
   const data = await chrome.storage.local.get(CACHE_KEY);
   const entry = data[CACHE_KEY]?.[cacheId];
-  if (!entry || Date.now() - entry.createdAt > (entry.ttlMs || CACHE_TTL_MS)) return null;
+  if (
+    !entry
+    || !Number.isFinite(entry.createdAt)
+    || !entry.results
+    || typeof entry.results !== "object"
+    || Array.isArray(entry.results)
+    || Date.now() - entry.createdAt > (entry.ttlMs || CACHE_TTL_MS)
+  ) return null;
   return entry;
 }
 
